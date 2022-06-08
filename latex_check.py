@@ -7,13 +7,17 @@ Description: [DESCRIPTION]
 '''
 
 import os
+import re
 import sys
 
 # ========= VARIABLES ===========
 BOOL_DEV_PRINTS = True
 BOOL_SHOW_LINES_ALL = False
 BOOL_SHOW_LINES_ERRORS_ONLY = True
+BOOL_PRINT_SUMMARY = True # Print error and warning amount at the end
 path_contents = [] # Lines of the file to check will go here
+int_errors = 0
+int_warnings = 0
 
 # ========= COLOR CODES =========
 color_end               = '\033[0m'
@@ -106,6 +110,7 @@ def warn(msg, line_nums, file_lines):
     # line_nums: Integer array, even of length 1. Size 0 not supported
     # file_lines: Lines of the original file
     print(f"{str_prefix_warn} {msg}")
+    int_warnings += 1
     show_lines(line_nums, file_lines, color_yellow)
 
 
@@ -114,6 +119,7 @@ def error(msg, line_nums, file_lines):
     # line_nums: Integer array, even of length 1. Size 0 not supported
     # file_lines: Lines of the original file
     print(f"{str_prefix_err} {msg}")
+    int_errors += 1
     show_lines(line_nums, file_lines, color_red)
 
 def hl(input):
@@ -133,6 +139,7 @@ def main():
         print(f"{str_prefix_err} Please input your file path!")
         sys.exit(1)
     path = args[1] # File path of the LaTeX file
+    path = os.path.expanduser(path) # In case "~" character is given in path
     if not os.path.exists(path):
         # Given file path does not exist
         print(f"{str_prefix_err} This file path does not exist!")
@@ -142,10 +149,6 @@ def main():
     # Array formatting
     for num, item in enumerate(path_contents):
         path_contents[num] = path_contents[num].replace("\n", "")
-    # if BOOL_DEV_PRINTS:
-    #     print(path_contents)
-    #     for item in path_contents:
-    #         print(item)
 
     # Check for errors and missing components here
     bool_has_documentclass = 0 # Check for "\documentclass{"
@@ -154,8 +157,11 @@ def main():
     arr_environments = [] # Environments that are used. Added when opened, removed when closed.
 
     for line_num, item in enumerate(path_contents):
+        # For every line in the file
+        # item: String, the actual line text
+        # line_num: Line number starting at 0. Use line_num_actual for printing
         line_num_actual = line_num + 1 # Actual line number, starting at 1
-        # Inside comment environment
+        # Check if inside a comment environment
         if nComment("\\begin{comment}", item): # Comment block start
             bool_inside_comment += 1
             if bool_inside_comment > 1:
@@ -176,6 +182,14 @@ def main():
             # TODO: Make sure all equations are closed ($ MATH $)
 
             # TODO: Make sure all environments are ended (itemize*, etc.)
+            # Do this by simulating a queue with an array (arr_environments)
+            env_name = re.search(r"\\(begin|end){(...+)}", item)
+            # .group(1): "begin" or "end"
+            # .group(2): Environment name
+            if env_name is not None and "}" not in env_name.group(2):
+                # "}" part because it was catching \newenvironment definitions
+                print(env_name.group(2)) # Prints environment name
+                # TODO: Continue here
 
 
 
@@ -187,6 +201,15 @@ def main():
             pos_documentclass_str = ", ".join(str(x) for x in pos_documentclass)
             error(f"You have too many \'{hl('documentclass')}\' lines, at lines {pos_documentclass_str}", pos_documentclass, path_contents)
 
+    if BOOL_PRINT_SUMMARY:
+        if int_errors == 1:
+            print(f"{str_prefix_info} 1 error")
+        else:
+            print(f"{str_prefix_info} {int_errors} errors")
+        if int_warnings == 1:
+            print(f"{str_prefix_info} 1 warning")
+        else:
+            print(f"{str_prefix_info} {int_warnings} warnings")
     sys.exit()
 
 

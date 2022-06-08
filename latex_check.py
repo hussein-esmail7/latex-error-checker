@@ -151,6 +151,7 @@ def main():
     bool_has_documentclass = 0 # Check for "\documentclass{"
     bool_inside_comment = 0 # If "%" is before string or inside a `comment` env
     pos_documentclass = [] # Lines where "documentclass" is found
+    arr_environments = [] # Environments that are used. Added when opened, removed when closed.
 
     for line_num, item in enumerate(path_contents):
         line_num_actual = line_num + 1 # Actual line number, starting at 1
@@ -171,8 +172,11 @@ def main():
                 bool_has_documentclass += 1
                 pos_documentclass.append(line_num_actual)
             # TODO: Count number of open brackets (that are not escaped)
+            # TODO: Count number of closed brackets (that are not escaped)
             # TODO: Make sure all equations are closed ($ MATH $)
+
             # TODO: Make sure all environments are ended (itemize*, etc.)
+
 
 
     # Print errors that were calculated
